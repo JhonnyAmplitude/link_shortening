@@ -18,4 +18,3 @@ def create_database():
         connection.commit()
     Base.metadata.create_all(engine)
     print("База успешно создана")
-    c
