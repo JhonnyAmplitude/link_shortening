@@ -23,18 +23,25 @@ def get_dynamic_salt():
     return uuid.uuid4().hex
 
 
-def registration(login: str, password: str) -> Dict[str, str | bool]:
+def check_user_password(input_password: str, db_password: str, db_dynamic_salt) -> bool:
+    hashed_input_password = hash_password(input_password, db_dynamic_salt)
+
+    if hashed_input_password == db_password:
+        return True
+
+    return False
+
+
+def registration(login: str, password: str) -> Dict[str, str | bool | None]:
 
     res = {"message": "", "success": False, "user_uuid": None}
 
     if not check_password_len(password):
         res["message"] = "Пароль слишком короткий, минимальное количество символов - 5"
-        res["success"] = False
         return res
 
     if db_funcs.get_user_by_login(login):
         res["message"] = f"Пользователь с логином {login} уже существует, придумайте другой логин"
-        res["success"] = False
         return res
 
     dynamic_salt = get_dynamic_salt()
@@ -43,5 +50,26 @@ def registration(login: str, password: str) -> Dict[str, str | bool]:
     res["message"] = f"Пользователь с логином {user.login} успешно создан"
     res["success"] = True
     res["user_uuid"] = user.uuid
+
+    return res
+
+
+def authorization(login: str, password: str) -> Dict[str, str | bool | None]:
+
+    res = {"message": "", "success": False, "user_uuid": None}
+
+    db_user = db_funcs.get_user_by_login(login)
+
+    if not db_user:
+        res["message"] = f"Пользователя с логином {login} не существует"
+        return res
+
+    if not check_user_password(input_password=password, db_password=db_user.password, db_dynamic_salt=db_user.salt):
+        res["message"] = "Неправильный пароль"
+        return res
+
+    res["message"] = f"Пользователь с логином {db_user.login} успешно авторизирован"
+    res["success"] = True
+    res["user_uuid"] = db_user.uuid
 
     return res
