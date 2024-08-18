@@ -2,7 +2,6 @@ from sqlalchemy.orm import Session
 from sqlalchemy.sql.ddl import DropSchema, CreateSchema
 from database.connection import engine
 from database.models import SCHEMA_NAME, Base, User
-from sqlalchemy.exc import IntegrityError
 
 
 def recreate_database():
@@ -22,19 +21,16 @@ def create_database():
     print("База успешно создана")
 
 
-def get_user_by_login(login):
+def get_user_by_login(login: str) -> User | None:
     with Session(engine) as session:
         result = session.query(User).filter(User.login == login).first()
     return result
 
 
-def create_user(login, password):
-    user = User(login=login, password=password)
-    try:
-        with Session(engine) as session:
-            session.add(user)
-            session.commit()
-    except IntegrityError:
-        return None
+def create_user(login: str, password: str, salt: str) -> User:
+    user = User(login=login, password=password, salt=salt)
+    with Session(engine) as session:
+        session.add(user)
+        session.commit()
+        session.refresh(user)
     return user
-
